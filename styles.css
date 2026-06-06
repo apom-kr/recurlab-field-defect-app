@@ -18,6 +18,7 @@ body::before { content: ""; position: fixed; inset: 0; pointer-events: none; opa
 h1 { margin: 0; font-size: clamp(34px, 9vw, 58px); letter-spacing: -0.06em; line-height: .92; }
 .sub { margin: 10px 0 0; font-weight: 800; color: #594c3f; }
 .status-card { flex: 0 0 auto; border: 2px solid var(--ink); border-radius: 999px; padding: 10px 13px; background: #dff3c7; font-weight: 900; box-shadow: 4px 4px 0 var(--ink); }
+.status-card.err { background: #ffe8e3; color: var(--bad); }
 .form-card { display: grid; gap: 14px; padding-bottom: 40px; }
 .quick-guide { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
 .quick-guide span { border: 2px solid var(--ink); border-radius: 999px; padding: 10px 8px; background: #fff7df; text-align: center; font-weight: 950; box-shadow: 3px 3px 0 var(--ink); }
@@ -49,7 +50,7 @@ input[readonly] { background: #efe8dc; color: #5f544a; }
 .small-btn { border: 2px solid var(--ink); border-radius: 14px; background: #fff; padding: 10px 12px; font-weight: 950; }
 .preview { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; }
 .preview img { width: 100%; aspect-ratio: 1; object-fit: cover; border: 2px solid var(--ink); border-radius: 14px; }
-.submit-btn { border: 3px solid var(--ink); border-radius: 22px; padding: 18px; background: var(--accent); color: white; font-size: 21px; font-weight: 950; box-shadow: 6px 6px 0 var(--ink); }
+.submit-btn { position: sticky; bottom: 12px; z-index: 5; border: 3px solid var(--ink); border-radius: 22px; padding: 18px; background: var(--accent); color: white; font-size: 21px; font-weight: 950; box-shadow: 6px 6px 0 var(--ink); }
 .submit-btn:disabled { opacity: .62; filter: grayscale(1); }
 .message { min-height: 24px; margin: 6px 4px 0; font-weight: 900; }
 .message.ok { color: var(--good); }
@@ -62,4 +63,5 @@ input[readonly] { background: #efe8dc; color: #5f544a; }
 .scanner-head button { border: 2px solid var(--ink); border-radius: 14px; background: #fff; padding: 10px 14px; font-weight: 950; }
 #scannerVideo { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border: 2px solid var(--ink); border-radius: 18px; background: #111; }
 #scannerHint { margin: 10px 4px 2px; font-weight: 900; color: #594c3f; }
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
 @media (max-width: 560px) { .hero { align-items: flex-start; flex-direction: column; } .quick-guide { grid-template-columns: repeat(2, 1fr); } .split, .qty-grid, .scan-row { grid-template-columns: 1fr; } .defect-buttons { grid-template-columns: 1fr; } .preview { grid-template-columns: repeat(2, 1fr); } }

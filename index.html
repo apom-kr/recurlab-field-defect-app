@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#101820" />
   <title>현장 불량 기록</title>
   <link rel="manifest" href="./manifest.json" />
-  <link rel="stylesheet" href="./styles.css?v=9" />
+  <link rel="stylesheet" href="./styles.css?v=10" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
@@ -17,7 +17,7 @@
         <h1>현장 불량 기록</h1>
         <p class="sub">바코드 스캔 → 수량 입력 → 사진 촬영 → 저장</p>
       </div>
-      <div class="status-card" id="connectionStatus">저장 준비</div>
+      <div class="status-card" id="connectionStatus" role="status" aria-live="polite">저장 준비</div>
     </section>
 
     <form id="defectForm" class="form-card" novalidate>
@@ -33,10 +33,10 @@
         <label>바코드
           <div class="scan-row">
             <input id="barcode" name="barcode" inputmode="text" autocomplete="off" placeholder="스캔 또는 직접 입력" />
-            <button type="button" id="scanBarcode" class="ghost-btn">📷 바코드 스캔</button>
+            <button type="button" id="scanBarcode" class="ghost-btn" aria-label="바코드 카메라 스캔">📷 바코드 스캔</button>
           </div>
         </label>
-        <p id="lookupMessage" class="inline-message">바코드를 스캔하거나 직접 입력 후 Enter를 눌러주세요.</p>
+        <p id="lookupMessage" class="inline-message" role="status" aria-live="polite">바코드를 스캔하거나 직접 입력 후 Enter를 눌러주세요.</p>
         <label>공급처
           <input id="supplierName" name="supplierName" placeholder="예: ○○상사" />
         </label>
@@ -114,7 +114,7 @@
       </section>
 
       <button id="submitBtn" class="submit-btn" type="submit">불량 기록 저장</button>
-      <p id="message" class="message"></p>
+      <p id="message" class="message" role="status" aria-live="polite"></p>
     </form>
 
     <section id="scannerPanel" class="scanner-panel" hidden>
@@ -129,6 +129,6 @@
     </section>
   </main>
 
-  <script type="module" src="./app.js?v=9"></script>
+  <script type="module" src="./app.js?v=10"></script>
 </body>
 </html>

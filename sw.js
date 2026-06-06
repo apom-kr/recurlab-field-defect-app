@@ -1,5 +1,5 @@
-const CACHE = "field-defect-app-v9";
-const ASSETS = ["./", "./index.html", "./styles.css?v=9", "./app.js?v=9", "./manifest.json"];
+const CACHE = "field-defect-app-v10";
+const ASSETS = ["./", "./index.html", "./styles.css?v=10", "./app.js?v=10", "./manifest.json"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(ASSETS)));

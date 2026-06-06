@@ -13,6 +13,9 @@ let scannerControls = null;
 let scannerReader = null;
 let lastLookupProduct = null;
 let lastLookupBarcode = "";
+let lookupRequestSeq = 0;
+const DRAFT_KEY = "fieldDefectDraftV1";
+const DRAFT_FIELDS = ["barcode", "supplierName", "productName", "optionName", "inspectorName", "siteName", "inspectionDate", "totalInspectedQty", "totalDefectQty", "defectItemQty", "defectDetail", "memo"];
 
 const today = new Date().toISOString().slice(0, 10);
 $("inspectionDate").value = today;
@@ -39,23 +42,44 @@ function scrollToField(id) {
   field?.focus?.();
 }
 
+function setConnectionStatus(text, type = "") {
+  const status = $("connectionStatus");
+  status.textContent = text;
+  status.className = `status-card ${type}`;
+}
+
+function refreshConnectionStatus() {
+  if (!navigator.onLine) {
+    setConnectionStatus("오프라인", "err");
+    return;
+  }
+  setConnectionStatus("저장 준비", "");
+}
+
 function setBusy(isBusy) {
   $("submitBtn").disabled = isBusy;
   $("submitBtn").textContent = isBusy ? "저장 중" : "불량 기록 저장";
-  $("connectionStatus").textContent = isBusy ? "저장 중" : "저장 준비";
+  if (isBusy) {
+    setConnectionStatus("저장 중");
+  } else {
+    refreshConnectionStatus();
+  }
 }
 
 function renderTypeButtons() {
   const box = $("defectButtons");
   box.innerHTML = "";
+  $("defectDetailBox").hidden = selectedType !== "기타";
   DEFECT_TYPES.forEach((type) => {
     const button = document.createElement("button");
     button.type = "button";
     button.className = `type-btn ${type === selectedType ? "active" : ""}`;
+    button.setAttribute("aria-pressed", type === selectedType ? "true" : "false");
     button.textContent = type;
     button.addEventListener("click", () => {
       selectedType = type;
       $("defectDetailBox").hidden = selectedType !== "기타";
+      saveDraft();
       renderTypeButtons();
     });
     box.appendChild(button);
@@ -67,6 +91,34 @@ function updateRate() {
   const defect = Number($("totalDefectQty").value || 0);
   const rate = inspected > 0 ? (defect / inspected) * 100 : 0;
   $("defectRate").textContent = `${rate.toFixed(1)}%`;
+}
+
+function saveDraft() {
+  const draft = DRAFT_FIELDS.reduce((acc, id) => {
+    acc[id] = $(id)?.value || "";
+    return acc;
+  }, { selectedType });
+  localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+}
+
+function loadDraft() {
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY);
+    if (!raw) return;
+    const draft = JSON.parse(raw);
+    DRAFT_FIELDS.forEach((id) => {
+      if (draft[id] !== undefined && $(id)) $(id).value = draft[id];
+    });
+    selectedType = DEFECT_TYPES.includes(draft.selectedType) ? draft.selectedType : selectedType;
+    setMessage("이전에 입력하던 내용을 불러왔습니다. 사진은 다시 추가해주세요.");
+  } catch (error) {
+    console.warn("draft restore failed", error);
+    localStorage.removeItem(DRAFT_KEY);
+  }
+}
+
+function clearDraft() {
+  localStorage.removeItem(DRAFT_KEY);
 }
 
 function renderPreview() {
@@ -83,6 +135,9 @@ function renderPreview() {
 }
 
 function validateForm() {
+  if (!navigator.onLine) {
+    throw new Error("현재 오프라인입니다. 입력 내용은 임시 저장됩니다. 네트워크 연결 후 저장해주세요.");
+  }
   const inspected = Number($("totalInspectedQty").value || 0);
   const defect = Number($("totalDefectQty").value || 0);
   const itemQty = Number($("defectItemQty").value || defect || 0);
@@ -154,6 +209,7 @@ function applyProductLookup(product) {
 }
 
 function clearLookupProductIfManualEdit() {
+  saveDraft();
   if (!lastLookupProduct) return;
   lastLookupProduct = null;
   lastLookupBarcode = "";
@@ -169,10 +225,14 @@ function getValidLookupProduct() {
 async function lookupProductByBarcode() {
   const barcode = $("barcode").value.trim();
   if (!barcode) return;
+  const requestSeq = lookupRequestSeq + 1;
+  lookupRequestSeq = requestSeq;
   try {
     setLookupMessage("바코드 상품 조회 중...");
     setMessage("바코드 상품 조회 중...");
+    $("scanBarcode").disabled = true;
     const { data, error } = await client.rpc("lookup_defect_product_by_barcode", { p_barcode: barcode });
+    if (requestSeq !== lookupRequestSeq || barcode !== $("barcode").value.trim()) return;
     if (error) throw error;
     if (!data || data.length === 0) {
       lastLookupProduct = null;
@@ -189,6 +249,8 @@ async function lookupProductByBarcode() {
     lastLookupBarcode = "";
     setLookupMessage("상품 조회 실패. 직접 입력으로 진행하거나 네트워크 확인 후 다시 시도해주세요.", "err");
     setMessage("상품 조회 실패. 네트워크 확인 후 다시 스캔하거나 직접 입력해주세요.", "err");
+  } finally {
+    $("scanBarcode").disabled = false;
   }
 }
 
@@ -294,6 +356,7 @@ async function handleSubmit(event) {
   let savedReportId = null;
   try {
     validateForm();
+    saveDraft();
     setBusy(true);
     setMessage("");
     localStorage.setItem("inspectorName", $("inspectorName").value.trim());
@@ -311,7 +374,8 @@ async function handleSubmit(event) {
     const photos = await uploadPhotos(report.id);
     await saveDefectItem(report.id, photos[0].id);
 
-    setMessage(`저장 완료: ${report.report_no}`, "ok");
+    setMessage(`저장 완료: ${report.report_no}. 다음 상품을 바로 입력할 수 있습니다.`, "ok");
+    clearDraft();
     $("defectForm").reset();
     $("inspectionDate").value = today;
     $("inspectorName").value = localStorage.getItem("inspectorName") || "";
@@ -327,6 +391,7 @@ async function handleSubmit(event) {
     renderPreview();
     renderTypeButtons();
     updateRate();
+    scrollToField("barcode");
   } catch (error) {
     if (savedReportId) {
       console.error(error);
@@ -336,6 +401,7 @@ async function handleSubmit(event) {
     } else {
       console.warn(error);
     }
+    saveDraft();
     setMessage(error.message || "저장 실패. 입력 내용을 다시 확인해주세요.", "err");
   } finally {
     setBusy(false);
@@ -355,6 +421,9 @@ async function startBarcodeScanner() {
         scannerControls = controls;
         if (!result) return;
         const code = result.getText();
+        if ($("barcode").value.trim() === code) return;
+        const confirmed = !$("barcode").value.trim() || window.confirm("입력 중인 바코드를 스캔한 값으로 바꿀까요?");
+        if (!confirmed) return;
         $("barcode").value = code;
         $("barcode").dispatchEvent(new Event("input", { bubbles: true }));
         setLookupMessage(`바코드 스캔 완료: ${code}. 상품 조회 중...`, "ok");
@@ -388,7 +457,9 @@ function stopBarcodeScanner() {
 
 $("scanBarcode").addEventListener("click", startBarcodeScanner);
 $("barcode").addEventListener("input", () => {
+  lookupRequestSeq += 1;
   if ($("barcode").value.trim() !== lastLookupBarcode) clearLookupProductIfManualEdit();
+  saveDraft();
 });
 $("barcode").addEventListener("change", lookupProductByBarcode);
 $("barcode").addEventListener("keydown", (event) => {
@@ -401,6 +472,9 @@ $("closeScanner").addEventListener("click", stopBarcodeScanner);
 $("supplierName").addEventListener("input", clearLookupProductIfManualEdit);
 $("productName").addEventListener("input", clearLookupProductIfManualEdit);
 $("optionName").addEventListener("input", clearLookupProductIfManualEdit);
+DRAFT_FIELDS.filter((id) => !["barcode", "supplierName", "productName", "optionName"].includes(id)).forEach((id) => {
+  $(id)?.addEventListener("input", saveDraft);
+});
 $("totalInspectedQty").addEventListener("input", updateRate);
 $("totalDefectQty").addEventListener("input", updateRate);
 $("photos").addEventListener("change", (event) => {
@@ -419,8 +493,12 @@ $("photos").addEventListener("change", (event) => {
 $("clearPhotos").addEventListener("click", clearSelectedPhotos);
 $("defectForm").addEventListener("submit", handleSubmit);
 
+window.addEventListener("online", refreshConnectionStatus);
+window.addEventListener("offline", refreshConnectionStatus);
+loadDraft();
 renderTypeButtons();
 updateRate();
+refreshConnectionStatus();
 
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("./sw.js").catch(console.error);
