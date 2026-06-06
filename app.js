@@ -10,6 +10,7 @@ let selectedType = "제품불량";
 let selectedFiles = [];
 let scannerControls = null;
 let scannerReader = null;
+let lastLookupProduct = null;
 
 const today = new Date().toISOString().slice(0, 10);
 $("inspectionDate").value = today;
@@ -78,17 +79,48 @@ function validateForm() {
   if (selectedType === "기타" && !$("defectDetail").value.trim()) throw new Error("기타 상세 내용을 입력해줘.");
 }
 
+function applyProductLookup(product) {
+  lastLookupProduct = product;
+  $("supplierName").value = product.supplier_name || "";
+  $("productName").value = product.product_name || "";
+  $("optionName").value = product.option_name || "";
+  setMessage(`상품 자동입력 완료: ${product.product_name}`, "ok");
+}
+
+async function lookupProductByBarcode() {
+  const barcode = $("barcode").value.trim();
+  if (!barcode) return;
+  try {
+    setMessage("바코드 상품 조회 중...");
+    const { data, error } = await client.rpc("lookup_defect_product_by_barcode", { p_barcode: barcode });
+    if (error) throw error;
+    if (!data || data.length === 0) {
+      lastLookupProduct = null;
+      setMessage("DB에서 상품을 못 찾았어. 상품명을 직접 입력해줘.", "err");
+      return;
+    }
+    applyProductLookup(data[0]);
+  } catch (error) {
+    console.error(error);
+    lastLookupProduct = null;
+    setMessage("상품 조회 실패. 네트워크 확인 후 다시 스캔하거나 직접 입력해줘.", "err");
+  }
+}
+
 function buildReportPayload() {
   const inspected = Number($("totalInspectedQty").value || 0);
   const defect = Number($("totalDefectQty").value || 0);
   return {
     report_no: `FIELD-${Date.now()}`,
-    lookup_source: $("barcode").value.trim() ? "barcode" : "manual",
+    lookup_source: lastLookupProduct?.lookup_source || ($("barcode").value.trim() ? "barcode" : "manual"),
     barcode: $("barcode").value.trim() || null,
+    vendor_item_id: lastLookupProduct?.vendor_item_id || null,
+    product_id: lastLookupProduct?.product_id || null,
+    sku_id: lastLookupProduct?.sku_id || null,
     supplier_name_snapshot: $("supplierName").value.trim() || null,
     product_name_snapshot: $("productName").value.trim(),
     option_name_snapshot: $("optionName").value.trim() || null,
-    product_snapshot_json: {
+    product_snapshot_json: lastLookupProduct?.product_snapshot_json || {
       barcode: $("barcode").value.trim() || null,
       supplier_name: $("supplierName").value.trim() || null,
       product_name: $("productName").value.trim(),
@@ -176,6 +208,7 @@ async function handleSubmit(event) {
     $("deviceLabel").value = localStorage.getItem("fieldDeviceLabel") || "";
     selectedFiles = [];
     selectedType = "제품불량";
+    lastLookupProduct = null;
     $("defectDetailBox").hidden = true;
     renderPreview();
     renderTypeButtons();
@@ -205,6 +238,7 @@ async function startBarcodeScanner() {
         $("barcode").dispatchEvent(new Event("input", { bubbles: true }));
         setMessage(`바코드 스캔 완료: ${code}`, "ok");
         stopBarcodeScanner();
+        lookupProductByBarcode();
       }
     );
     $("scannerHint").textContent = "바코드를 화면 중앙에 맞춰줘. 인식되면 자동 입력돼.";
@@ -230,6 +264,13 @@ function stopBarcodeScanner() {
 }
 
 $("scanBarcode").addEventListener("click", startBarcodeScanner);
+$("barcode").addEventListener("change", lookupProductByBarcode);
+$("barcode").addEventListener("keydown", (event) => {
+  if (event.key === "Enter") {
+    event.preventDefault();
+    lookupProductByBarcode();
+  }
+});
 $("closeScanner").addEventListener("click", stopBarcodeScanner);
 $("totalInspectedQty").addEventListener("input", updateRate);
 $("totalDefectQty").addEventListener("input", updateRate);
