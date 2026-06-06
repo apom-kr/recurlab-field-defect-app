@@ -40,7 +40,7 @@ function scrollToField(id) {
 
 function setBusy(isBusy) {
   $("submitBtn").disabled = isBusy;
-  $("submitBtn").textContent = isBusy ? "저장 중..." : "불량 기록 저장";
+  $("submitBtn").textContent = isBusy ? "저장 중" : "불량 기록 저장";
   $("connectionStatus").textContent = isBusy ? "저장 중" : "저장 준비";
 }
 
@@ -86,48 +86,48 @@ function validateForm() {
 
   if (!$("productName").value.trim()) {
     scrollToField("productName");
-    throw new Error("상품명을 입력해줘.");
+    throw new Error("상품명을 입력해주세요.");
   }
   if (!$("inspectorName").value.trim()) {
     scrollToField("inspectorName");
-    throw new Error("검사자 이름을 입력해줘.");
+    throw new Error("검사자 이름을 입력해주세요.");
   }
   if (inspected <= 0) {
     scrollToField("totalInspectedQty");
-    throw new Error("검사 수량은 1 이상이어야 해.");
+    throw new Error("검사 수량은 1 이상이어야 합니다.");
   }
   if (defect <= 0) {
     scrollToField("totalDefectQty");
-    throw new Error("불량 수량은 1 이상이어야 해.");
+    throw new Error("불량 수량은 1 이상이어야 합니다.");
   }
   if (inspected < 0 || defect < 0) {
     scrollToField("totalInspectedQty");
-    throw new Error("수량은 0 이상이어야 해.");
+    throw new Error("수량은 0 이상이어야 합니다.");
   }
   if (defect > inspected) {
     scrollToField("totalDefectQty");
-    throw new Error("불량 수량이 검사 수량보다 클 수 없어.");
+    throw new Error("불량 수량은 검사 수량보다 클 수 없습니다.");
   }
   if (itemQty <= 0) {
     scrollToField("defectItemQty");
-    throw new Error("유형별 수량은 1 이상이어야 해.");
+    throw new Error("유형별 수량은 1 이상이어야 합니다.");
   }
   if (itemQty > defect) {
     scrollToField("defectItemQty");
-    throw new Error("유형별 수량은 전체 불량 수량보다 클 수 없어.");
+    throw new Error("유형별 수량은 전체 불량 수량보다 클 수 없습니다.");
   }
   if (selectedType === "기타" && !$("defectDetail").value.trim()) {
     scrollToField("defectDetail");
-    throw new Error("기타 상세 내용을 입력해줘.");
+    throw new Error("기타 상세 내용을 입력해주세요.");
   }
   if (selectedFiles.length === 0) {
     scrollToField("photoBlock");
-    throw new Error("불량 사진을 최소 1장 올려줘.");
+    throw new Error("불량 사진을 최소 1장 추가해주세요.");
   }
   const oversizedFile = selectedFiles.find((file) => file.size > MAX_PHOTO_SIZE_BYTES);
   if (oversizedFile) {
     scrollToField("photoBlock");
-    throw new Error(`${oversizedFile.name} 파일이 10MB를 넘어. 압축하거나 다른 사진을 선택해줘.`);
+    throw new Error(`${oversizedFile.name} 파일이 10MB를 초과합니다. 압축하거나 다른 사진을 선택해주세요.`);
   }
 }
 
@@ -151,8 +151,8 @@ async function lookupProductByBarcode() {
     if (error) throw error;
     if (!data || data.length === 0) {
       lastLookupProduct = null;
-      setLookupMessage("DB에서 상품을 못 찾았어. 상품명을 직접 입력해줘.", "err");
-      setMessage("DB에서 상품을 못 찾았어. 상품명을 직접 입력해줘.", "err");
+      setLookupMessage("DB에서 상품을 찾지 못했습니다. 상품명을 직접 입력해주세요.", "err");
+      setMessage("DB에서 상품을 찾지 못했습니다. 상품명을 직접 입력해주세요.", "err");
       scrollToField("productName");
       return;
     }
@@ -160,8 +160,8 @@ async function lookupProductByBarcode() {
   } catch (error) {
     console.error(error);
     lastLookupProduct = null;
-    setLookupMessage("상품 조회 실패. 직접 입력으로 진행하거나 네트워크 확인 후 다시 시도해줘.", "err");
-    setMessage("상품 조회 실패. 네트워크 확인 후 다시 스캔하거나 직접 입력해줘.", "err");
+    setLookupMessage("상품 조회 실패. 직접 입력으로 진행하거나 네트워크 확인 후 다시 시도해주세요.", "err");
+    setMessage("상품 조회 실패. 네트워크 확인 후 다시 스캔하거나 직접 입력해주세요.", "err");
   }
 }
 
@@ -285,17 +285,19 @@ async function handleSubmit(event) {
     selectedFiles = [];
     selectedType = "제품불량";
     lastLookupProduct = null;
-    setLookupMessage("바코드를 스캔하거나 직접 입력 후 Enter를 눌러줘.");
+    setLookupMessage("바코드를 스캔하거나 직접 입력 후 Enter를 눌러주세요.");
     $("defectDetailBox").hidden = true;
     renderPreview();
     renderTypeButtons();
     updateRate();
   } catch (error) {
-    console.error(error);
     if (savedReportId) {
+      console.error(error);
       await markReportUploadFailed(savedReportId, error);
+    } else {
+      console.warn(error);
     }
-    setMessage(error.message || "저장 실패. 다시 확인해줘.", "err");
+    setMessage(error.message || "저장 실패. 입력 내용을 다시 확인해주세요.", "err");
   } finally {
     setBusy(false);
   }
@@ -322,13 +324,13 @@ async function startBarcodeScanner() {
         lookupProductByBarcode();
       }
     );
-    $("scannerHint").textContent = "바코드를 화면 중앙에 맞춰줘. 인식되면 자동 입력돼.";
+    $("scannerHint").textContent = "바코드를 화면 중앙에 맞춰주세요. 인식되면 자동 입력됩니다.";
   } catch (error) {
-    console.error(error);
+    console.warn(error);
     stopBarcodeScanner();
     $("barcode").focus();
-    setLookupMessage("카메라 스캔을 열 수 없어. 직접 입력창에 바코드를 넣어줘.", "err");
-    setMessage("카메라 스캔을 열 수 없어. 권한 확인 후 다시 누르거나 바코드를 직접 입력해줘.", "err");
+    setLookupMessage("카메라 스캔을 열 수 없습니다. 직접 입력창에 바코드를 입력해주세요.", "err");
+    setMessage("카메라 스캔을 열 수 없습니다. 권한 확인 후 다시 누르거나 바코드를 직접 입력해주세요.", "err");
   }
 }
 
@@ -363,7 +365,7 @@ $("photos").addEventListener("change", (event) => {
     selectedFiles = [];
     event.target.value = "";
     renderPreview();
-    setMessage(`${oversizedFile.name} 파일이 10MB를 넘어. 다른 사진을 선택해줘.`, "err");
+    setMessage(`${oversizedFile.name} 파일이 10MB를 초과합니다. 다른 사진을 선택해주세요.`, "err");
     return;
   }
   renderPreview();

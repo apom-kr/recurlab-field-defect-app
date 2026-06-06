@@ -1,4 +1,4 @@
-const CACHE = "field-defect-app-v6";
+const CACHE = "field-defect-app-v8";
 const ASSETS = ["./", "./index.html", "./styles.css", "./app.js", "./manifest.json"];
 
 self.addEventListener("install", (event) => {

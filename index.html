@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#101820" />
   <title>현장 불량 기록</title>
   <link rel="manifest" href="./manifest.json" />
-  <link rel="stylesheet" href="./styles.css?v=6" />
+  <link rel="stylesheet" href="./styles.css?v=8" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
@@ -36,7 +36,7 @@
             <button type="button" id="scanBarcode" class="ghost-btn">📷 바코드 스캔</button>
           </div>
         </label>
-        <p id="lookupMessage" class="inline-message">바코드를 스캔하거나 직접 입력 후 Enter를 눌러줘.</p>
+        <p id="lookupMessage" class="inline-message">바코드를 스캔하거나 직접 입력 후 Enter를 눌러주세요.</p>
         <label>공급처
           <input id="supplierName" name="supplierName" placeholder="예: ○○상사" />
         </label>
@@ -86,7 +86,7 @@
         <div class="defect-buttons" id="defectButtons"></div>
         <div class="defect-detail" id="defectDetailBox" hidden>
           <label>기타 상세 <strong>*</strong>
-            <input id="defectDetail" placeholder="기타 내용을 적어줘" />
+            <input id="defectDetail" placeholder="기타 내용 입력" />
           </label>
         </div>
         <label>유형별 수량
@@ -120,11 +120,11 @@
           <button type="button" id="closeScanner">닫기</button>
         </div>
         <video id="scannerVideo" playsinline muted></video>
-        <p id="scannerHint">카메라 권한을 허용하고 바코드를 화면 중앙에 맞춰줘.</p>
+        <p id="scannerHint">카메라 권한을 허용하고 바코드를 화면 중앙에 맞춰주세요.</p>
       </div>
     </section>
   </main>
 
-  <script type="module" src="./app.js?v=6"></script>
+  <script type="module" src="./app.js?v=8"></script>
 </body>
 </html>
