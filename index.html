@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#101820" />
   <title>현장 불량 기록</title>
   <link rel="manifest" href="./manifest.json" />
-  <link rel="stylesheet" href="./styles.css?v=4" />
+  <link rel="stylesheet" href="./styles.css?v=6" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
@@ -15,12 +15,19 @@
       <div>
         <p class="eyebrow">3PL FIELD QA</p>
         <h1>현장 불량 기록</h1>
-        <p class="sub">사진 찍고 · 수량 누르고 · 바로 저장</p>
+        <p class="sub">바코드 스캔 → 수량 입력 → 사진 촬영 → 저장</p>
       </div>
       <div class="status-card" id="connectionStatus">저장 준비</div>
     </section>
 
     <form id="defectForm" class="form-card">
+      <section class="quick-guide" aria-label="입력 순서 안내">
+        <span>1 바코드</span>
+        <span>2 수량</span>
+        <span>3 사진</span>
+        <span>4 저장</span>
+      </section>
+
       <section class="block">
         <h2>1. 제품</h2>
         <label>바코드
@@ -118,6 +125,6 @@
     </section>
   </main>
 
-  <script type="module" src="./app.js?v=4"></script>
+  <script type="module" src="./app.js?v=6"></script>
 </body>
 </html>

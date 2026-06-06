@@ -92,6 +92,14 @@ function validateForm() {
     scrollToField("inspectorName");
     throw new Error("검사자 이름을 입력해줘.");
   }
+  if (inspected <= 0) {
+    scrollToField("totalInspectedQty");
+    throw new Error("검사 수량은 1 이상이어야 해.");
+  }
+  if (defect <= 0) {
+    scrollToField("totalDefectQty");
+    throw new Error("불량 수량은 1 이상이어야 해.");
+  }
   if (inspected < 0 || defect < 0) {
     scrollToField("totalInspectedQty");
     throw new Error("수량은 0 이상이어야 해.");
@@ -103,6 +111,10 @@ function validateForm() {
   if (itemQty <= 0) {
     scrollToField("defectItemQty");
     throw new Error("유형별 수량은 1 이상이어야 해.");
+  }
+  if (itemQty > defect) {
+    scrollToField("defectItemQty");
+    throw new Error("유형별 수량은 전체 불량 수량보다 클 수 없어.");
   }
   if (selectedType === "기타" && !$("defectDetail").value.trim()) {
     scrollToField("defectDetail");
@@ -139,8 +151,9 @@ async function lookupProductByBarcode() {
     if (error) throw error;
     if (!data || data.length === 0) {
       lastLookupProduct = null;
-      setLookupMessage("DB에서 상품을 못 찾았어. 직접 입력으로 진행해줘.", "err");
+      setLookupMessage("DB에서 상품을 못 찾았어. 상품명을 직접 입력해줘.", "err");
       setMessage("DB에서 상품을 못 찾았어. 상품명을 직접 입력해줘.", "err");
+      scrollToField("productName");
       return;
     }
     applyProductLookup(data[0]);
