@@ -12,6 +12,7 @@ let selectedFiles = [];
 let scannerControls = null;
 let scannerReader = null;
 let lastLookupProduct = null;
+let lastLookupBarcode = "";
 
 const today = new Date().toISOString().slice(0, 10);
 $("inspectionDate").value = today;
@@ -71,6 +72,8 @@ function updateRate() {
 function renderPreview() {
   const preview = $("preview");
   preview.innerHTML = "";
+  $("photoSummary").textContent = selectedFiles.length ? `${selectedFiles.length}장 선택됨` : "선택된 사진 없음";
+  $("clearPhotos").hidden = selectedFiles.length === 0;
   selectedFiles.forEach((file) => {
     const img = document.createElement("img");
     img.alt = file.name;
@@ -92,6 +95,18 @@ function validateForm() {
     scrollToField("inspectorName");
     throw new Error("검사자 이름을 입력해주세요.");
   }
+  if (!$("inspectionDate").value) {
+    scrollToField("inspectionDate");
+    throw new Error("검사일을 선택해주세요.");
+  }
+  if (inspected < 0 || defect < 0) {
+    scrollToField("totalInspectedQty");
+    throw new Error("수량은 0 이상이어야 합니다.");
+  }
+  if (!Number.isInteger(inspected) || !Number.isInteger(defect) || !Number.isInteger(itemQty)) {
+    scrollToField("totalInspectedQty");
+    throw new Error("수량은 소수점 없이 정수로 입력해주세요.");
+  }
   if (inspected <= 0) {
     scrollToField("totalInspectedQty");
     throw new Error("검사 수량은 1 이상이어야 합니다.");
@@ -99,10 +114,6 @@ function validateForm() {
   if (defect <= 0) {
     scrollToField("totalDefectQty");
     throw new Error("불량 수량은 1 이상이어야 합니다.");
-  }
-  if (inspected < 0 || defect < 0) {
-    scrollToField("totalInspectedQty");
-    throw new Error("수량은 0 이상이어야 합니다.");
   }
   if (defect > inspected) {
     scrollToField("totalDefectQty");
@@ -133,12 +144,26 @@ function validateForm() {
 
 function applyProductLookup(product) {
   lastLookupProduct = product;
+  lastLookupBarcode = $("barcode").value.trim();
   $("supplierName").value = product.supplier_name || "";
   $("productName").value = product.product_name || "";
   $("optionName").value = product.option_name || "";
   const optionText = product.option_name ? ` / 옵션: ${product.option_name}` : " / 옵션 없음, 필요 시 직접 확인";
   setLookupMessage(`상품 자동입력 완료: ${product.product_name}${optionText}`, "ok");
   setMessage(`상품 자동입력 완료: ${product.product_name}`, "ok");
+}
+
+function clearLookupProductIfManualEdit() {
+  if (!lastLookupProduct) return;
+  lastLookupProduct = null;
+  lastLookupBarcode = "";
+  setLookupMessage("상품 정보가 수정되었습니다. 현재 입력값을 직접 입력 상품으로 저장합니다.");
+}
+
+function getValidLookupProduct() {
+  const currentBarcode = $("barcode").value.trim();
+  if (!lastLookupProduct || currentBarcode !== lastLookupBarcode) return null;
+  return lastLookupProduct;
 }
 
 async function lookupProductByBarcode() {
@@ -151,6 +176,7 @@ async function lookupProductByBarcode() {
     if (error) throw error;
     if (!data || data.length === 0) {
       lastLookupProduct = null;
+      lastLookupBarcode = "";
       setLookupMessage("DB에서 상품을 찾지 못했습니다. 상품명을 직접 입력해주세요.", "err");
       setMessage("DB에서 상품을 찾지 못했습니다. 상품명을 직접 입력해주세요.", "err");
       scrollToField("productName");
@@ -160,6 +186,7 @@ async function lookupProductByBarcode() {
   } catch (error) {
     console.error(error);
     lastLookupProduct = null;
+    lastLookupBarcode = "";
     setLookupMessage("상품 조회 실패. 직접 입력으로 진행하거나 네트워크 확인 후 다시 시도해주세요.", "err");
     setMessage("상품 조회 실패. 네트워크 확인 후 다시 스캔하거나 직접 입력해주세요.", "err");
   }
@@ -168,17 +195,18 @@ async function lookupProductByBarcode() {
 function buildReportPayload() {
   const inspected = Number($("totalInspectedQty").value || 0);
   const defect = Number($("totalDefectQty").value || 0);
+  const lookupProduct = getValidLookupProduct();
   return {
     report_no: `FIELD-${Date.now()}`,
-    lookup_source: lastLookupProduct?.lookup_source || ($("barcode").value.trim() ? "barcode" : "manual"),
+    lookup_source: lookupProduct?.lookup_source || ($("barcode").value.trim() ? "manual_barcode" : "manual"),
     barcode: $("barcode").value.trim() || null,
-    vendor_item_id: lastLookupProduct?.vendor_item_id || null,
-    product_id: lastLookupProduct?.product_id || null,
-    sku_id: lastLookupProduct?.sku_id || null,
+    vendor_item_id: lookupProduct?.vendor_item_id || null,
+    product_id: lookupProduct?.product_id || null,
+    sku_id: lookupProduct?.sku_id || null,
     supplier_name_snapshot: $("supplierName").value.trim() || null,
     product_name_snapshot: $("productName").value.trim(),
     option_name_snapshot: $("optionName").value.trim() || null,
-    product_snapshot_json: lastLookupProduct?.product_snapshot_json || {
+    product_snapshot_json: lookupProduct?.product_snapshot_json || {
       barcode: $("barcode").value.trim() || null,
       supplier_name: $("supplierName").value.trim() || null,
       product_name: $("productName").value.trim(),
@@ -254,6 +282,13 @@ async function markReportUploadFailed(reportId, error) {
   }
 }
 
+function clearSelectedPhotos() {
+  selectedFiles = [];
+  $("photos").value = "";
+  renderPreview();
+  setMessage("사진 선택을 초기화했습니다. 다시 추가해주세요.");
+}
+
 async function handleSubmit(event) {
   event.preventDefault();
   let savedReportId = null;
@@ -283,8 +318,10 @@ async function handleSubmit(event) {
     $("siteName").value = localStorage.getItem("siteName") || "";
     $("deviceLabel").value = localStorage.getItem("fieldDeviceLabel") || "";
     selectedFiles = [];
+    $("photos").value = "";
     selectedType = "제품불량";
     lastLookupProduct = null;
+    lastLookupBarcode = "";
     setLookupMessage("바코드를 스캔하거나 직접 입력 후 Enter를 눌러주세요.");
     $("defectDetailBox").hidden = true;
     renderPreview();
@@ -294,6 +331,8 @@ async function handleSubmit(event) {
     if (savedReportId) {
       console.error(error);
       await markReportUploadFailed(savedReportId, error);
+      setMessage(`일부 저장 실패. 관리자에게 보고번호 ${savedReportId}와 함께 알려주세요.`, "err");
+      return;
     } else {
       console.warn(error);
     }
@@ -348,6 +387,9 @@ function stopBarcodeScanner() {
 }
 
 $("scanBarcode").addEventListener("click", startBarcodeScanner);
+$("barcode").addEventListener("input", () => {
+  if ($("barcode").value.trim() !== lastLookupBarcode) clearLookupProductIfManualEdit();
+});
 $("barcode").addEventListener("change", lookupProductByBarcode);
 $("barcode").addEventListener("keydown", (event) => {
   if (event.key === "Enter") {
@@ -356,6 +398,9 @@ $("barcode").addEventListener("keydown", (event) => {
   }
 });
 $("closeScanner").addEventListener("click", stopBarcodeScanner);
+$("supplierName").addEventListener("input", clearLookupProductIfManualEdit);
+$("productName").addEventListener("input", clearLookupProductIfManualEdit);
+$("optionName").addEventListener("input", clearLookupProductIfManualEdit);
 $("totalInspectedQty").addEventListener("input", updateRate);
 $("totalDefectQty").addEventListener("input", updateRate);
 $("photos").addEventListener("change", (event) => {
@@ -371,6 +416,7 @@ $("photos").addEventListener("change", (event) => {
   renderPreview();
   setMessage(`${selectedFiles.length}장 선택됨`, "ok");
 });
+$("clearPhotos").addEventListener("click", clearSelectedPhotos);
 $("defectForm").addEventListener("submit", handleSubmit);
 
 renderTypeButtons();

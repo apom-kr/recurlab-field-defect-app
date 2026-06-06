@@ -45,6 +45,8 @@ input[readonly] { background: #efe8dc; color: #5f544a; }
 .photo-drop input { display: none; }
 .photo-drop span { display: block; font-size: 20px; font-weight: 950; }
 .photo-drop small { display: block; margin-top: 6px; color: #655648; }
+.photo-actions { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 10px; font-weight: 900; color: #594c3f; }
+.small-btn { border: 2px solid var(--ink); border-radius: 14px; background: #fff; padding: 10px 12px; font-weight: 950; }
 .preview { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; }
 .preview img { width: 100%; aspect-ratio: 1; object-fit: cover; border: 2px solid var(--ink); border-radius: 14px; }
 .submit-btn { border: 3px solid var(--ink); border-radius: 22px; padding: 18px; background: var(--accent); color: white; font-size: 21px; font-weight: 950; box-shadow: 6px 6px 0 var(--ink); }

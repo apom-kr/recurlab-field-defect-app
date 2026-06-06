@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#101820" />
   <title>현장 불량 기록</title>
   <link rel="manifest" href="./manifest.json" />
-  <link rel="stylesheet" href="./styles.css?v=8" />
+  <link rel="stylesheet" href="./styles.css?v=9" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
@@ -20,7 +20,7 @@
       <div class="status-card" id="connectionStatus">저장 준비</div>
     </section>
 
-    <form id="defectForm" class="form-card">
+    <form id="defectForm" class="form-card" novalidate>
       <section class="quick-guide" aria-label="입력 순서 안내">
         <span>1 바코드</span>
         <span>2 수량</span>
@@ -72,10 +72,10 @@
         <h2>3. 수량</h2>
         <div class="qty-grid">
           <label>검사 수량 <strong>*</strong>
-            <input id="totalInspectedQty" name="totalInspectedQty" type="number" min="0" required placeholder="0" />
+            <input id="totalInspectedQty" name="totalInspectedQty" type="number" min="1" step="1" inputmode="numeric" required placeholder="0" />
           </label>
           <label>불량 수량 <strong>*</strong>
-            <input id="totalDefectQty" name="totalDefectQty" type="number" min="0" required placeholder="0" />
+            <input id="totalDefectQty" name="totalDefectQty" type="number" min="1" step="1" inputmode="numeric" required placeholder="0" />
           </label>
         </div>
         <div class="rate-box"><span>불량률</span><b id="defectRate">0%</b></div>
@@ -90,7 +90,7 @@
           </label>
         </div>
         <label>유형별 수량
-          <input id="defectItemQty" type="number" min="1" placeholder="비우면 전체 불량 수량" />
+          <input id="defectItemQty" type="number" min="1" step="1" inputmode="numeric" placeholder="비우면 전체 불량 수량" />
         </label>
       </section>
 
@@ -101,6 +101,10 @@
           <span>카메라로 촬영 / 사진 선택</span>
           <small>jpg · png · webp · heic, 파일당 10MB 이하</small>
         </label>
+        <div class="photo-actions">
+          <span id="photoSummary">선택된 사진 없음</span>
+          <button type="button" id="clearPhotos" class="small-btn" hidden>사진 다시 선택</button>
+        </div>
         <div id="preview" class="preview"></div>
       </section>
 
@@ -125,6 +129,6 @@
     </section>
   </main>
 
-  <script type="module" src="./app.js?v=8"></script>
+  <script type="module" src="./app.js?v=9"></script>
 </body>
 </html>
