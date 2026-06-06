@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#101820" />
+  <title>현장 불량 기록</title>
+  <link rel="manifest" href="./manifest.json" />
+  <link rel="stylesheet" href="./styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <main class="shell">
+    <section class="hero">
+      <div>
+        <p class="eyebrow">3PL FIELD QA</p>
+        <h1>현장 불량 기록</h1>
+        <p class="sub">사진 찍고 · 수량 누르고 · 바로 저장</p>
+      </div>
+      <div class="status-card" id="connectionStatus">저장 준비</div>
+    </section>
+
+    <form id="defectForm" class="form-card">
+      <section class="block">
+        <h2>1. 제품</h2>
+        <label>바코드
+          <div class="scan-row">
+            <input id="barcode" name="barcode" inputmode="text" autocomplete="off" placeholder="스캔 또는 직접 입력" />
+            <button type="button" id="scanBarcode" class="ghost-btn">스캔</button>
+          </div>
+        </label>
+        <label>공급처
+          <input id="supplierName" name="supplierName" placeholder="예: ○○상사" />
+        </label>
+        <label>상품명 <strong>*</strong>
+          <input id="productName" name="productName" required placeholder="상품명 입력" />
+        </label>
+        <label>옵션
+          <input id="optionName" name="optionName" placeholder="색상/사이즈 등" />
+        </label>
+      </section>
+
+      <section class="block split">
+        <div>
+          <h2>2. 검사 정보</h2>
+          <label>검사자 <strong>*</strong>
+            <input id="inspectorName" name="inspectorName" required placeholder="이름" />
+          </label>
+          <label>현장명
+            <input id="siteName" name="siteName" placeholder="창고/라인" />
+          </label>
+        </div>
+        <div>
+          <label>검사일 <strong>*</strong>
+            <input id="inspectionDate" name="inspectionDate" type="date" required />
+          </label>
+          <label>디바이스
+            <input id="deviceLabel" name="deviceLabel" placeholder="자동 저장됨" />
+          </label>
+        </div>
+      </section>
+
+      <section class="block qty-panel">
+        <h2>3. 수량</h2>
+        <div class="qty-grid">
+          <label>검사 수량 <strong>*</strong>
+            <input id="totalInspectedQty" name="totalInspectedQty" type="number" min="0" required placeholder="0" />
+          </label>
+          <label>불량 수량 <strong>*</strong>
+            <input id="totalDefectQty" name="totalDefectQty" type="number" min="0" required placeholder="0" />
+          </label>
+        </div>
+        <div class="rate-box"><span>불량률</span><b id="defectRate">0%</b></div>
+      </section>
+
+      <section class="block">
+        <h2>4. 불량 유형</h2>
+        <div class="defect-buttons" id="defectButtons"></div>
+        <div class="defect-detail" id="defectDetailBox" hidden>
+          <label>기타 상세 <strong>*</strong>
+            <input id="defectDetail" placeholder="기타 내용을 적어줘" />
+          </label>
+        </div>
+        <label>유형별 수량
+          <input id="defectItemQty" type="number" min="1" placeholder="비우면 전체 불량 수량" />
+        </label>
+      </section>
+
+      <section class="block">
+        <h2>5. 사진 <strong>*</strong></h2>
+        <label class="photo-drop">
+          <input id="photos" name="photos" type="file" accept="image/*" capture="environment" multiple required />
+          <span>카메라로 촬영 / 사진 선택</span>
+          <small>jpg · png · webp · heic, 파일당 10MB 이하</small>
+        </label>
+        <div id="preview" class="preview"></div>
+      </section>
+
+      <section class="block">
+        <h2>6. 메모</h2>
+        <textarea id="memo" name="memo" rows="3" placeholder="특이사항, 조치 내용"></textarea>
+      </section>
+
+      <button id="submitBtn" class="submit-btn" type="submit">불량 기록 저장</button>
+      <p id="message" class="message"></p>
+    </form>
+
+    <section id="scannerPanel" class="scanner-panel" hidden>
+      <div class="scanner-card">
+        <div class="scanner-head">
+          <strong>바코드 스캔</strong>
+          <button type="button" id="closeScanner">닫기</button>
+        </div>
+        <video id="scannerVideo" playsinline muted></video>
+        <p id="scannerHint">카메라 권한을 허용하고 바코드를 화면 중앙에 맞춰줘.</p>
+      </div>
+    </section>
+  </main>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

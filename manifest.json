@@ -1,0 +1,9 @@
+{
+  "name": "현장 불량 기록",
+  "short_name": "불량기록",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f4efe4",
+  "theme_color": "#101820",
+  "icons": []
+}
