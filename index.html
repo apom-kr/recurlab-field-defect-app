@@ -26,9 +26,10 @@
         <label>바코드
           <div class="scan-row">
             <input id="barcode" name="barcode" inputmode="text" autocomplete="off" placeholder="스캔 또는 직접 입력" />
-            <button type="button" id="scanBarcode" class="ghost-btn">스캔</button>
+            <button type="button" id="scanBarcode" class="ghost-btn">📷 바코드 스캔</button>
           </div>
         </label>
+        <p id="lookupMessage" class="inline-message">바코드를 스캔하거나 직접 입력 후 Enter를 눌러줘.</p>
         <label>공급처
           <input id="supplierName" name="supplierName" placeholder="예: ○○상사" />
         </label>
@@ -55,7 +56,7 @@
             <input id="inspectionDate" name="inspectionDate" type="date" required />
           </label>
           <label>디바이스
-            <input id="deviceLabel" name="deviceLabel" placeholder="자동 저장됨" />
+            <input id="deviceLabel" name="deviceLabel" placeholder="자동 저장됨" readonly />
           </label>
         </div>
       </section>
@@ -86,10 +87,10 @@
         </label>
       </section>
 
-      <section class="block">
+      <section class="block" id="photoBlock">
         <h2>5. 사진 <strong>*</strong></h2>
         <label class="photo-drop">
-          <input id="photos" name="photos" type="file" accept="image/*" capture="environment" multiple required />
+          <input id="photos" name="photos" type="file" accept="image/*" capture="environment" multiple />
           <span>카메라로 촬영 / 사진 선택</span>
           <small>jpg · png · webp · heic, 파일당 10MB 이하</small>
         </label>

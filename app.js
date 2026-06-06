@@ -2,6 +2,7 @@ const SUPABASE_URL = "https://rlsdcgwldfpqhdwqrdpp.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJsc2RjZ3dsZGZwcWhkd3FyZHBwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAwMzA0MDAsImV4cCI6MjA4NTYwNjQwMH0.0XIBe4q3Z6BdKJIPpWERf-GPQiIj10VZnePVjBS2ylw";
 const BUCKET = "defect-photos";
 const DEFECT_TYPES = ["제품불량", "포장불량", "라벨불량", "수량오류", "오염", "파손", "기타"];
+const MAX_PHOTO_SIZE_BYTES = 10 * 1024 * 1024;
 
 const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const $ = (id) => document.getElementById(id);
@@ -17,11 +18,24 @@ $("inspectionDate").value = today;
 $("deviceLabel").value = localStorage.getItem("fieldDeviceLabel") || `현장기기-${crypto.randomUUID().slice(0, 8)}`;
 localStorage.setItem("fieldDeviceLabel", $("deviceLabel").value);
 $("inspectorName").value = localStorage.getItem("inspectorName") || "";
+$("siteName").value = localStorage.getItem("siteName") || "";
 
 function setMessage(text, type = "") {
   const message = $("message");
   message.textContent = text;
   message.className = `message ${type}`;
+}
+
+function setLookupMessage(text, type = "") {
+  const message = $("lookupMessage");
+  message.textContent = text;
+  message.className = `inline-message ${type}`;
+}
+
+function scrollToField(id) {
+  const field = $(id);
+  field?.scrollIntoView({ behavior: "smooth", block: "center" });
+  field?.focus?.();
 }
 
 function setBusy(isBusy) {
@@ -70,13 +84,39 @@ function validateForm() {
   const defect = Number($("totalDefectQty").value || 0);
   const itemQty = Number($("defectItemQty").value || defect || 0);
 
-  if (!$("productName").value.trim()) throw new Error("상품명을 입력해줘.");
-  if (!$("inspectorName").value.trim()) throw new Error("검사자 이름을 입력해줘.");
-  if (selectedFiles.length === 0) throw new Error("불량 사진을 최소 1장 올려줘.");
-  if (inspected < 0 || defect < 0) throw new Error("수량은 0 이상이어야 해.");
-  if (defect > inspected) throw new Error("불량 수량이 검사 수량보다 클 수 없어.");
-  if (itemQty <= 0) throw new Error("유형별 수량은 1 이상이어야 해.");
-  if (selectedType === "기타" && !$("defectDetail").value.trim()) throw new Error("기타 상세 내용을 입력해줘.");
+  if (!$("productName").value.trim()) {
+    scrollToField("productName");
+    throw new Error("상품명을 입력해줘.");
+  }
+  if (!$("inspectorName").value.trim()) {
+    scrollToField("inspectorName");
+    throw new Error("검사자 이름을 입력해줘.");
+  }
+  if (inspected < 0 || defect < 0) {
+    scrollToField("totalInspectedQty");
+    throw new Error("수량은 0 이상이어야 해.");
+  }
+  if (defect > inspected) {
+    scrollToField("totalDefectQty");
+    throw new Error("불량 수량이 검사 수량보다 클 수 없어.");
+  }
+  if (itemQty <= 0) {
+    scrollToField("defectItemQty");
+    throw new Error("유형별 수량은 1 이상이어야 해.");
+  }
+  if (selectedType === "기타" && !$("defectDetail").value.trim()) {
+    scrollToField("defectDetail");
+    throw new Error("기타 상세 내용을 입력해줘.");
+  }
+  if (selectedFiles.length === 0) {
+    scrollToField("photoBlock");
+    throw new Error("불량 사진을 최소 1장 올려줘.");
+  }
+  const oversizedFile = selectedFiles.find((file) => file.size > MAX_PHOTO_SIZE_BYTES);
+  if (oversizedFile) {
+    scrollToField("photoBlock");
+    throw new Error(`${oversizedFile.name} 파일이 10MB를 넘어. 압축하거나 다른 사진을 선택해줘.`);
+  }
 }
 
 function applyProductLookup(product) {
@@ -84,6 +124,8 @@ function applyProductLookup(product) {
   $("supplierName").value = product.supplier_name || "";
   $("productName").value = product.product_name || "";
   $("optionName").value = product.option_name || "";
+  const optionText = product.option_name ? ` / 옵션: ${product.option_name}` : " / 옵션 없음, 필요 시 직접 확인";
+  setLookupMessage(`상품 자동입력 완료: ${product.product_name}${optionText}`, "ok");
   setMessage(`상품 자동입력 완료: ${product.product_name}`, "ok");
 }
 
@@ -91,11 +133,13 @@ async function lookupProductByBarcode() {
   const barcode = $("barcode").value.trim();
   if (!barcode) return;
   try {
+    setLookupMessage("바코드 상품 조회 중...");
     setMessage("바코드 상품 조회 중...");
     const { data, error } = await client.rpc("lookup_defect_product_by_barcode", { p_barcode: barcode });
     if (error) throw error;
     if (!data || data.length === 0) {
       lastLookupProduct = null;
+      setLookupMessage("DB에서 상품을 못 찾았어. 직접 입력으로 진행해줘.", "err");
       setMessage("DB에서 상품을 못 찾았어. 상품명을 직접 입력해줘.", "err");
       return;
     }
@@ -103,6 +147,7 @@ async function lookupProductByBarcode() {
   } catch (error) {
     console.error(error);
     lastLookupProduct = null;
+    setLookupMessage("상품 조회 실패. 직접 입력으로 진행하거나 네트워크 확인 후 다시 시도해줘.", "err");
     setMessage("상품 조회 실패. 네트워크 확인 후 다시 스캔하거나 직접 입력해줘.", "err");
   }
 }
@@ -182,13 +227,29 @@ async function saveDefectItem(reportId, firstPhotoId) {
   if (error) throw error;
 }
 
+async function markReportUploadFailed(reportId, error) {
+  try {
+    await client
+      .from("defect_reports")
+      .update({
+        status: "upload_failed",
+        memo: `저장 중 일부 실패: ${error.message || "unknown"}`
+      })
+      .eq("id", reportId);
+  } catch (markError) {
+    console.error("failed to mark upload_failed", markError);
+  }
+}
+
 async function handleSubmit(event) {
   event.preventDefault();
+  let savedReportId = null;
   try {
     validateForm();
     setBusy(true);
     setMessage("");
     localStorage.setItem("inspectorName", $("inspectorName").value.trim());
+    localStorage.setItem("siteName", $("siteName").value.trim());
     localStorage.setItem("fieldDeviceLabel", $("deviceLabel").value.trim());
 
     const { data: report, error: reportError } = await client
@@ -197,6 +258,7 @@ async function handleSubmit(event) {
       .select("id, report_no")
       .single();
     if (reportError) throw reportError;
+    savedReportId = report.id;
 
     const photos = await uploadPhotos(report.id);
     await saveDefectItem(report.id, photos[0].id);
@@ -205,16 +267,21 @@ async function handleSubmit(event) {
     $("defectForm").reset();
     $("inspectionDate").value = today;
     $("inspectorName").value = localStorage.getItem("inspectorName") || "";
+    $("siteName").value = localStorage.getItem("siteName") || "";
     $("deviceLabel").value = localStorage.getItem("fieldDeviceLabel") || "";
     selectedFiles = [];
     selectedType = "제품불량";
     lastLookupProduct = null;
+    setLookupMessage("바코드를 스캔하거나 직접 입력 후 Enter를 눌러줘.");
     $("defectDetailBox").hidden = true;
     renderPreview();
     renderTypeButtons();
     updateRate();
   } catch (error) {
     console.error(error);
+    if (savedReportId) {
+      await markReportUploadFailed(savedReportId, error);
+    }
     setMessage(error.message || "저장 실패. 다시 확인해줘.", "err");
   } finally {
     setBusy(false);
@@ -236,6 +303,7 @@ async function startBarcodeScanner() {
         const code = result.getText();
         $("barcode").value = code;
         $("barcode").dispatchEvent(new Event("input", { bubbles: true }));
+        setLookupMessage(`바코드 스캔 완료: ${code}. 상품 조회 중...`, "ok");
         setMessage(`바코드 스캔 완료: ${code}`, "ok");
         stopBarcodeScanner();
         lookupProductByBarcode();
@@ -246,6 +314,7 @@ async function startBarcodeScanner() {
     console.error(error);
     stopBarcodeScanner();
     $("barcode").focus();
+    setLookupMessage("카메라 스캔을 열 수 없어. 직접 입력창에 바코드를 넣어줘.", "err");
     setMessage("카메라 스캔을 열 수 없어. 권한 확인 후 다시 누르거나 바코드를 직접 입력해줘.", "err");
   }
 }
@@ -276,7 +345,16 @@ $("totalInspectedQty").addEventListener("input", updateRate);
 $("totalDefectQty").addEventListener("input", updateRate);
 $("photos").addEventListener("change", (event) => {
   selectedFiles = [...event.target.files];
+  const oversizedFile = selectedFiles.find((file) => file.size > MAX_PHOTO_SIZE_BYTES);
+  if (oversizedFile) {
+    selectedFiles = [];
+    event.target.value = "";
+    renderPreview();
+    setMessage(`${oversizedFile.name} 파일이 10MB를 넘어. 다른 사진을 선택해줘.`, "err");
+    return;
+  }
   renderPreview();
+  setMessage(`${selectedFiles.length}장 선택됨`, "ok");
 });
 $("defectForm").addEventListener("submit", handleSubmit);
 

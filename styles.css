@@ -27,20 +27,25 @@ strong { color: var(--accent-dark); }
 input, textarea { width: 100%; border: 2px solid var(--ink); border-radius: 16px; padding: 15px 14px; font: inherit; font-weight: 800; background: #fffdf8; outline: none; }
 input:focus, textarea:focus { box-shadow: 0 0 0 4px rgba(255, 107, 53, .25); }
 .scan-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
-.ghost-btn { border: 2px solid var(--ink); border-radius: 16px; background: #101820; color: white; padding: 0 18px; font-weight: 900; }
+.ghost-btn { border: 2px solid var(--ink); border-radius: 16px; background: #101820; color: white; padding: 0 18px; font-weight: 900; min-height: 54px; }
+.inline-message { margin: -4px 0 12px; border: 2px solid var(--line); border-radius: 14px; padding: 10px 12px; background: #fff7df; color: #594c3f; font-weight: 900; }
+.inline-message.ok { border-color: var(--good); background: #e4f6ec; color: var(--good); }
+.inline-message.err { border-color: var(--bad); background: #ffe8e3; color: var(--bad); }
+input[readonly] { background: #efe8dc; color: #5f544a; }
 .qty-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .rate-box { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; border: 2px dashed var(--ink); border-radius: 18px; padding: 14px; background: #fff3d8; font-weight: 900; }
 .rate-box b { font-size: 28px; color: var(--accent-dark); }
 .defect-buttons { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .type-btn { border: 2px solid var(--ink); border-radius: 18px; padding: 18px 10px; background: #ffffff; color: var(--ink); font-size: 17px; font-weight: 950; box-shadow: 4px 4px 0 #101820; }
 .type-btn.active { background: var(--accent); color: white; transform: translate(3px, 3px); box-shadow: 1px 1px 0 #101820; }
+.type-btn.active::before { content: "✓ 선택됨 · "; }
 .photo-drop { border: 2px dashed var(--ink); border-radius: 22px; padding: 20px; text-align: center; background: #f8e7c6; cursor: pointer; }
 .photo-drop input { display: none; }
 .photo-drop span { display: block; font-size: 20px; font-weight: 950; }
 .photo-drop small { display: block; margin-top: 6px; color: #655648; }
 .preview { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; }
 .preview img { width: 100%; aspect-ratio: 1; object-fit: cover; border: 2px solid var(--ink); border-radius: 14px; }
-.submit-btn { position: sticky; bottom: 12px; border: 3px solid var(--ink); border-radius: 22px; padding: 18px; background: var(--accent); color: white; font-size: 21px; font-weight: 950; box-shadow: 6px 6px 0 var(--ink); }
+.submit-btn { position: sticky; bottom: 12px; z-index: 10; border: 3px solid var(--ink); border-radius: 22px; padding: 18px; background: var(--accent); color: white; font-size: 21px; font-weight: 950; box-shadow: 6px 6px 0 var(--ink); }
 .submit-btn:disabled { opacity: .62; filter: grayscale(1); }
 .message { min-height: 24px; margin: 6px 4px 0; font-weight: 900; }
 .message.ok { color: var(--good); }
@@ -53,4 +58,4 @@ input:focus, textarea:focus { box-shadow: 0 0 0 4px rgba(255, 107, 53, .25); }
 .scanner-head button { border: 2px solid var(--ink); border-radius: 14px; background: #fff; padding: 10px 14px; font-weight: 950; }
 #scannerVideo { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border: 2px solid var(--ink); border-radius: 18px; background: #111; }
 #scannerHint { margin: 10px 4px 2px; font-weight: 900; color: #594c3f; }
-@media (max-width: 560px) { .hero { align-items: flex-start; flex-direction: column; } .split, .qty-grid { grid-template-columns: 1fr; } .defect-buttons { grid-template-columns: 1fr; } .preview { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 560px) { .hero { align-items: flex-start; flex-direction: column; } .split, .qty-grid, .scan-row { grid-template-columns: 1fr; } .defect-buttons { grid-template-columns: 1fr; } .preview { grid-template-columns: repeat(2, 1fr); } }
