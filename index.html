@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#101820" />
   <title>현장 불량 기록</title>
   <link rel="manifest" href="./manifest.json" />
-  <link rel="stylesheet" href="./styles.css?v=13" />
+  <link rel="stylesheet" href="./styles.css?v=14" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
@@ -70,17 +70,15 @@
       </section>
 
       <section class="block" id="photoBlock">
-        <h2>사진 <strong>*</strong></h2>
-        <label class="photo-drop">
-          <input id="photos" name="photos" type="file" accept="image/*" capture="environment" multiple />
-          <span>사진 추가</span>
-          <small>사진별 유형/수량 입력</small>
-        </label>
-        <div class="photo-actions">
-          <span id="photoSummary">선택된 사진 없음</span>
-          <button type="button" id="clearPhotos" class="small-btn" hidden>사진 초기화</button>
+        <div class="block-head">
+          <h2>불량 항목 <strong>*</strong></h2>
+          <button type="button" id="addDefectItem" class="small-btn">+ 불량 항목 추가</button>
         </div>
-        <div id="preview" class="preview"></div>
+        <p class="hint">불량 내용과 수량을 먼저 입력한 뒤, 해당 항목 사진을 추가해주세요.</p>
+        <div class="photo-actions">
+          <span id="photoSummary">사진 없음</span>
+        </div>
+        <div id="defectItems" class="defect-items"></div>
       </section>
 
       <section class="block">
@@ -104,6 +102,6 @@
     </section>
   </main>
 
-  <script type="module" src="./app.js?v=13"></script>
+  <script type="module" src="./app.js?v=14"></script>
 </body>
 </html>
