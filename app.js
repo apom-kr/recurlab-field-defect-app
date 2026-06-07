@@ -15,7 +15,7 @@ let lastLookupProduct = null;
 let lastLookupBarcode = "";
 let lookupRequestSeq = 0;
 const DRAFT_KEY = "fieldDefectDraftV1";
-const DRAFT_FIELDS = ["barcode", "supplierName", "productName", "optionName", "inspectorName", "siteName", "inspectionDate", "totalInspectedQty", "totalDefectQty", "memo"];
+const DRAFT_FIELDS = ["barcode", "supplierName", "productName", "optionName", "inspectorName", "siteName", "inspectionDate", "totalInspectedQty", "memo"];
 
 const today = new Date().toISOString().slice(0, 10);
 $("inspectionDate").value = today;
@@ -66,9 +66,14 @@ function setBusy(isBusy) {
   }
 }
 
+function getPhotoQtyTotal() {
+  return photoDetails.reduce((sum, detail) => sum + Number(detail?.qty || 0), 0);
+}
+
 function updateRate() {
   const inspected = Number($("totalInspectedQty").value || 0);
-  const defect = Number($("totalDefectQty").value || 0);
+  const defect = getPhotoQtyTotal();
+  $("totalDefectQty").textContent = `${defect}개`;
   const rate = inspected > 0 ? (defect / inspected) * 100 : 0;
   $("defectRate").textContent = `${rate.toFixed(1)}%`;
 }
@@ -140,6 +145,7 @@ function renderPreview() {
     qtyInput.value = photoDetails[index]?.qty || "";
     qtyInput.addEventListener("input", () => {
       photoDetails[index] = { ...photoDetails[index], qty: qtyInput.value };
+      updateRate();
       saveDraft();
     });
 
@@ -154,7 +160,7 @@ function validateForm() {
     throw new Error("현재 오프라인입니다. 입력 내용은 임시 저장됩니다. 네트워크 연결 후 저장해주세요.");
   }
   const inspected = Number($("totalInspectedQty").value || 0);
-  const defect = Number($("totalDefectQty").value || 0);
+  const defect = getPhotoQtyTotal();
 
   if (!$("productName").value.trim()) {
     scrollToField("productName");
@@ -168,40 +174,31 @@ function validateForm() {
     scrollToField("inspectionDate");
     throw new Error("검사일을 선택해주세요.");
   }
-  if (inspected < 0 || defect < 0) {
+  if (inspected < 0) {
     scrollToField("totalInspectedQty");
-    throw new Error("수량은 0 이상이어야 합니다.");
+    throw new Error("검사 수량은 0 이상이어야 합니다.");
   }
-  if (!Number.isInteger(inspected) || !Number.isInteger(defect)) {
+  if (!Number.isInteger(inspected)) {
     scrollToField("totalInspectedQty");
-    throw new Error("수량은 소수점 없이 정수로 입력해주세요.");
+    throw new Error("검사 수량은 소수점 없이 정수로 입력해주세요.");
   }
   if (inspected <= 0) {
     scrollToField("totalInspectedQty");
     throw new Error("검사 수량은 1 이상이어야 합니다.");
   }
-  if (defect <= 0) {
-    scrollToField("totalDefectQty");
-    throw new Error("불량 수량은 1 이상이어야 합니다.");
-  }
-  if (defect > inspected) {
-    scrollToField("totalDefectQty");
-    throw new Error("불량 수량은 검사 수량보다 클 수 없습니다.");
-  }
-
   if (selectedFiles.length === 0) {
     scrollToField("photoBlock");
     throw new Error("불량 사진을 최소 1장 추가해주세요.");
   }
-  const photoQtyTotal = photoDetails.reduce((sum, detail) => sum + Number(detail?.qty || 0), 0);
+  const photoQtyTotal = getPhotoQtyTotal();
   const hasMissingPhotoQty = photoDetails.some((detail) => !detail?.qty || Number(detail.qty) <= 0 || !Number.isInteger(Number(detail.qty)));
   if (hasMissingPhotoQty) {
     scrollToField("photoBlock");
     throw new Error("사진별 수량을 입력해주세요.");
   }
-  if (photoQtyTotal !== defect) {
+  if (photoQtyTotal > inspected) {
     scrollToField("photoBlock");
-    throw new Error("사진별 수량 합계는 전체 불량 수량과 같아야 합니다.");
+    throw new Error("불량 수량 합계는 검사 수량보다 클 수 없습니다.");
   }
   const oversizedFile = selectedFiles.find((file) => file.size > MAX_PHOTO_SIZE_BYTES);
   if (oversizedFile) {
@@ -269,7 +266,7 @@ async function lookupProductByBarcode() {
 
 function buildReportPayload() {
   const inspected = Number($("totalInspectedQty").value || 0);
-  const defect = Number($("totalDefectQty").value || 0);
+  const defect = getPhotoQtyTotal();
   const lookupProduct = getValidLookupProduct();
   return {
     report_no: `FIELD-${Date.now()}`,
@@ -348,6 +345,7 @@ function clearSelectedPhotos() {
   photoDetails = [];
   $("photos").value = "";
   renderPreview();
+  updateRate();
   setMessage("사진을 초기화했습니다. 다시 추가해주세요.");
 }
 
@@ -474,7 +472,6 @@ DRAFT_FIELDS.filter((id) => !["barcode", "supplierName", "productName", "optionN
   $(id)?.addEventListener("input", saveDraft);
 });
 $("totalInspectedQty").addEventListener("input", updateRate);
-$("totalDefectQty").addEventListener("input", updateRate);
 $("photos").addEventListener("change", (event) => {
   const newFiles = [...event.target.files];
   const oversizedFile = newFiles.find((file) => file.size > MAX_PHOTO_SIZE_BYTES);
@@ -488,6 +485,7 @@ $("photos").addEventListener("change", (event) => {
   photoDetails = selectedFiles.map((_, index) => photoDetails[index] || { type: DEFECT_TYPES[0], qty: "" });
   event.target.value = "";
   renderPreview();
+  updateRate();
   setMessage(`${selectedFiles.length}장 추가됨`, "ok");
 });
 $("clearPhotos").addEventListener("click", clearSelectedPhotos);
