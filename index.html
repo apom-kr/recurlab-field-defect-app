@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#101820" />
   <title>현장 불량 기록</title>
   <link rel="manifest" href="./manifest.json" />
-  <link rel="stylesheet" href="./styles.css?v=11" />
+  <link rel="stylesheet" href="./styles.css?v=12" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
@@ -68,19 +68,6 @@
         <div class="rate-box"><span>불량률</span><b id="defectRate">0%</b></div>
       </section>
 
-      <section class="block">
-        <h2>불량 유형</h2>
-        <div class="defect-buttons" id="defectButtons"></div>
-        <div class="defect-detail" id="defectDetailBox" hidden>
-          <label>기타 상세 <strong>*</strong>
-            <input id="defectDetail" placeholder="기타 내용 입력" />
-          </label>
-        </div>
-        <label>유형별 수량
-          <input id="defectItemQty" type="number" min="1" step="1" inputmode="numeric" placeholder="비우면 전체 불량 수량" />
-        </label>
-      </section>
-
       <section class="block" id="photoBlock">
         <h2>사진 <strong>*</strong></h2>
         <label class="photo-drop">
@@ -116,6 +103,6 @@
     </section>
   </main>
 
-  <script type="module" src="./app.js?v=11"></script>
+  <script type="module" src="./app.js?v=12"></script>
 </body>
 </html>

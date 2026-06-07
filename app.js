@@ -7,7 +7,6 @@ const MAX_PHOTO_SIZE_BYTES = 10 * 1024 * 1024;
 const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const $ = (id) => document.getElementById(id);
 
-let selectedType = "제품불량";
 let selectedFiles = [];
 let photoDetails = [];
 let scannerControls = null;
@@ -16,7 +15,7 @@ let lastLookupProduct = null;
 let lastLookupBarcode = "";
 let lookupRequestSeq = 0;
 const DRAFT_KEY = "fieldDefectDraftV1";
-const DRAFT_FIELDS = ["barcode", "supplierName", "productName", "optionName", "inspectorName", "siteName", "inspectionDate", "totalInspectedQty", "totalDefectQty", "defectItemQty", "defectDetail", "memo"];
+const DRAFT_FIELDS = ["barcode", "supplierName", "productName", "optionName", "inspectorName", "siteName", "inspectionDate", "totalInspectedQty", "totalDefectQty", "memo"];
 
 const today = new Date().toISOString().slice(0, 10);
 $("inspectionDate").value = today;
@@ -67,26 +66,6 @@ function setBusy(isBusy) {
   }
 }
 
-function renderTypeButtons() {
-  const box = $("defectButtons");
-  box.innerHTML = "";
-  $("defectDetailBox").hidden = selectedType !== "기타";
-  DEFECT_TYPES.forEach((type) => {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = `type-btn ${type === selectedType ? "active" : ""}`;
-    button.setAttribute("aria-pressed", type === selectedType ? "true" : "false");
-    button.textContent = type;
-    button.addEventListener("click", () => {
-      selectedType = type;
-      $("defectDetailBox").hidden = selectedType !== "기타";
-      saveDraft();
-      renderTypeButtons();
-    });
-    box.appendChild(button);
-  });
-}
-
 function updateRate() {
   const inspected = Number($("totalInspectedQty").value || 0);
   const defect = Number($("totalDefectQty").value || 0);
@@ -98,7 +77,7 @@ function saveDraft() {
   const draft = DRAFT_FIELDS.reduce((acc, id) => {
     acc[id] = $(id)?.value || "";
     return acc;
-  }, { selectedType });
+  }, {});
   localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
 }
 
@@ -110,7 +89,6 @@ function loadDraft() {
     DRAFT_FIELDS.forEach((id) => {
       if (draft[id] !== undefined && $(id)) $(id).value = draft[id];
     });
-    selectedType = DEFECT_TYPES.includes(draft.selectedType) ? draft.selectedType : selectedType;
     setMessage("이전에 입력하던 내용을 불러왔습니다. 사진은 다시 추가해주세요.");
   } catch (error) {
     console.warn("draft restore failed", error);
@@ -146,7 +124,7 @@ function renderPreview() {
       option.textContent = type;
       typeSelect.appendChild(option);
     });
-    typeSelect.value = photoDetails[index]?.type || selectedType;
+    typeSelect.value = photoDetails[index]?.type || DEFECT_TYPES[0];
     typeSelect.addEventListener("change", () => {
       photoDetails[index] = { ...photoDetails[index], type: typeSelect.value };
       saveDraft();
@@ -177,7 +155,6 @@ function validateForm() {
   }
   const inspected = Number($("totalInspectedQty").value || 0);
   const defect = Number($("totalDefectQty").value || 0);
-  const itemQty = Number($("defectItemQty").value || defect || 0);
 
   if (!$("productName").value.trim()) {
     scrollToField("productName");
@@ -195,7 +172,7 @@ function validateForm() {
     scrollToField("totalInspectedQty");
     throw new Error("수량은 0 이상이어야 합니다.");
   }
-  if (!Number.isInteger(inspected) || !Number.isInteger(defect) || !Number.isInteger(itemQty)) {
+  if (!Number.isInteger(inspected) || !Number.isInteger(defect)) {
     scrollToField("totalInspectedQty");
     throw new Error("수량은 소수점 없이 정수로 입력해주세요.");
   }
@@ -211,25 +188,18 @@ function validateForm() {
     scrollToField("totalDefectQty");
     throw new Error("불량 수량은 검사 수량보다 클 수 없습니다.");
   }
-  if (itemQty <= 0) {
-    scrollToField("defectItemQty");
-    throw new Error("유형별 수량은 1 이상이어야 합니다.");
-  }
-  if (itemQty > defect) {
-    scrollToField("defectItemQty");
-    throw new Error("유형별 수량은 전체 불량 수량보다 클 수 없습니다.");
-  }
-  if (selectedType === "기타" && !$("defectDetail").value.trim()) {
-    scrollToField("defectDetail");
-    throw new Error("기타 상세 내용을 입력해주세요.");
-  }
+
   if (selectedFiles.length === 0) {
     scrollToField("photoBlock");
     throw new Error("불량 사진을 최소 1장 추가해주세요.");
   }
   const photoQtyTotal = photoDetails.reduce((sum, detail) => sum + Number(detail?.qty || 0), 0);
-  const hasAnyPhotoQty = photoDetails.some((detail) => detail?.qty);
-  if (hasAnyPhotoQty && photoQtyTotal !== defect) {
+  const hasMissingPhotoQty = photoDetails.some((detail) => !detail?.qty || Number(detail.qty) <= 0 || !Number.isInteger(Number(detail.qty)));
+  if (hasMissingPhotoQty) {
+    scrollToField("photoBlock");
+    throw new Error("사진별 수량을 입력해주세요.");
+  }
+  if (photoQtyTotal !== defect) {
     scrollToField("photoBlock");
     throw new Error("사진별 수량 합계는 전체 불량 수량과 같아야 합니다.");
   }
@@ -359,38 +329,20 @@ async function uploadPhotos(reportId) {
 }
 
 async function saveDefectItems(reportId, photos) {
-  const totalDefectQty = Number($("totalDefectQty").value || 0);
-  const fallbackQty = Number($("defectItemQty").value || totalDefectQty || 1);
   const rows = photos.map((photo, index) => {
     const detail = photoDetails[index] || {};
-    const defectType = detail.type || selectedType;
     return {
       report_id: reportId,
       photo_id: photo.id,
-      defect_type: defectType,
-      defect_detail: defectType === "기타" ? $("defectDetail").value.trim() || null : null,
-      defect_qty: Number(detail.qty || fallbackQty),
+      defect_type: detail.type || DEFECT_TYPES[0],
+      defect_detail: null,
+      defect_qty: Number(detail.qty),
       memo: $("memo").value.trim() || null
     };
   });
   const { error } = await client.from("defect_items").insert(rows);
   if (error) throw error;
 }
-
-async function markReportUploadFailed(reportId, error) {
-  try {
-    await client
-      .from("defect_reports")
-      .update({
-        status: "upload_failed",
-        memo: `저장 중 일부 실패: ${error.message || "unknown"}`
-      })
-      .eq("id", reportId);
-  } catch (markError) {
-    console.error("failed to mark upload_failed", markError);
-  }
-}
-
 function clearSelectedPhotos() {
   selectedFiles = [];
   photoDetails = [];
@@ -432,13 +384,10 @@ async function handleSubmit(event) {
     selectedFiles = [];
     photoDetails = [];
     $("photos").value = "";
-    selectedType = "제품불량";
     lastLookupProduct = null;
     lastLookupBarcode = "";
     setLookupMessage("");
-    $("defectDetailBox").hidden = true;
     renderPreview();
-    renderTypeButtons();
     updateRate();
     scrollToField("barcode");
   } catch (error) {
@@ -536,7 +485,7 @@ $("photos").addEventListener("change", (event) => {
     return;
   }
   selectedFiles = [...selectedFiles, ...newFiles];
-  photoDetails = selectedFiles.map((_, index) => photoDetails[index] || { type: selectedType, qty: "" });
+  photoDetails = selectedFiles.map((_, index) => photoDetails[index] || { type: DEFECT_TYPES[0], qty: "" });
   event.target.value = "";
   renderPreview();
   setMessage(`${selectedFiles.length}장 추가됨`, "ok");
@@ -547,7 +496,6 @@ $("defectForm").addEventListener("submit", handleSubmit);
 window.addEventListener("online", refreshConnectionStatus);
 window.addEventListener("offline", refreshConnectionStatus);
 loadDraft();
-renderTypeButtons();
 updateRate();
 refreshConnectionStatus();
 
