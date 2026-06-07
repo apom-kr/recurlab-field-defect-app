@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#101820" />
   <title>현장 불량 기록</title>
   <link rel="manifest" href="./manifest.json" />
-  <link rel="stylesheet" href="./styles.css?v=10" />
+  <link rel="stylesheet" href="./styles.css?v=11" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
@@ -15,28 +15,21 @@
       <div>
         <p class="eyebrow">3PL FIELD QA</p>
         <h1>현장 불량 기록</h1>
-        <p class="sub">바코드 스캔 → 수량 입력 → 사진 촬영 → 저장</p>
+        <p class="sub">바코드 · 수량 · 사진</p>
       </div>
       <div class="status-card" id="connectionStatus" role="status" aria-live="polite">저장 준비</div>
     </section>
 
     <form id="defectForm" class="form-card" novalidate>
-      <section class="quick-guide" aria-label="입력 순서 안내">
-        <span>1 바코드</span>
-        <span>2 수량</span>
-        <span>3 사진</span>
-        <span>4 저장</span>
-      </section>
-
       <section class="block">
-        <h2>1. 제품</h2>
+        <h2>제품</h2>
         <label>바코드
           <div class="scan-row">
             <input id="barcode" name="barcode" inputmode="text" autocomplete="off" placeholder="스캔 또는 직접 입력" />
             <button type="button" id="scanBarcode" class="ghost-btn" aria-label="바코드 카메라 스캔">📷 바코드 스캔</button>
           </div>
         </label>
-        <p id="lookupMessage" class="inline-message" role="status" aria-live="polite">바코드를 스캔하거나 직접 입력 후 Enter를 눌러주세요.</p>
+        <p id="lookupMessage" class="inline-message" role="status" aria-live="polite"></p>
         <label>공급처
           <input id="supplierName" name="supplierName" placeholder="예: ○○상사" />
         </label>
@@ -48,9 +41,9 @@
         </label>
       </section>
 
-      <section class="block split">
-        <div>
-          <h2>2. 검사 정보</h2>
+      <section class="block">
+        <h2>검사</h2>
+        <div class="compact-grid inspector-grid">
           <label>검사자 <strong>*</strong>
             <input id="inspectorName" name="inspectorName" required placeholder="이름" />
           </label>
@@ -58,18 +51,12 @@
             <input id="siteName" name="siteName" placeholder="창고/라인" />
           </label>
         </div>
-        <div>
-          <label>검사일 <strong>*</strong>
-            <input id="inspectionDate" name="inspectionDate" type="date" required />
-          </label>
-          <label>디바이스
-            <input id="deviceLabel" name="deviceLabel" placeholder="자동 저장됨" readonly />
-          </label>
-        </div>
+        <input id="inspectionDate" name="inspectionDate" type="date" required hidden />
+        <input id="deviceLabel" name="deviceLabel" placeholder="자동 저장됨" readonly hidden />
       </section>
 
       <section class="block qty-panel">
-        <h2>3. 수량</h2>
+        <h2>수량</h2>
         <div class="qty-grid">
           <label>검사 수량 <strong>*</strong>
             <input id="totalInspectedQty" name="totalInspectedQty" type="number" min="1" step="1" inputmode="numeric" required placeholder="0" />
@@ -82,7 +69,7 @@
       </section>
 
       <section class="block">
-        <h2>4. 불량 유형</h2>
+        <h2>불량 유형</h2>
         <div class="defect-buttons" id="defectButtons"></div>
         <div class="defect-detail" id="defectDetailBox" hidden>
           <label>기타 상세 <strong>*</strong>
@@ -95,21 +82,21 @@
       </section>
 
       <section class="block" id="photoBlock">
-        <h2>5. 사진 <strong>*</strong></h2>
+        <h2>사진 <strong>*</strong></h2>
         <label class="photo-drop">
           <input id="photos" name="photos" type="file" accept="image/*" capture="environment" multiple />
-          <span>카메라로 촬영 / 사진 선택</span>
-          <small>jpg · png · webp · heic, 파일당 10MB 이하</small>
+          <span>사진 추가</span>
+          <small>사진별 유형/수량 입력</small>
         </label>
         <div class="photo-actions">
           <span id="photoSummary">선택된 사진 없음</span>
-          <button type="button" id="clearPhotos" class="small-btn" hidden>사진 다시 선택</button>
+          <button type="button" id="clearPhotos" class="small-btn" hidden>사진 초기화</button>
         </div>
         <div id="preview" class="preview"></div>
       </section>
 
       <section class="block">
-        <h2>6. 메모</h2>
+        <h2>메모</h2>
         <textarea id="memo" name="memo" rows="3" placeholder="특이사항, 조치 내용"></textarea>
       </section>
 
@@ -129,6 +116,6 @@
     </section>
   </main>
 
-  <script type="module" src="./app.js?v=10"></script>
+  <script type="module" src="./app.js?v=11"></script>
 </body>
 </html>

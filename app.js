@@ -9,6 +9,7 @@ const $ = (id) => document.getElementById(id);
 
 let selectedType = "제품불량";
 let selectedFiles = [];
+let photoDetails = [];
 let scannerControls = null;
 let scannerReader = null;
 let lastLookupProduct = null;
@@ -60,7 +61,7 @@ function setBusy(isBusy) {
   $("submitBtn").disabled = isBusy;
   $("submitBtn").textContent = isBusy ? "저장 중" : "불량 기록 저장";
   if (isBusy) {
-    setConnectionStatus("저장 중");
+    setConnectionStatus("저장 중", "busy");
   } else {
     refreshConnectionStatus();
   }
@@ -124,13 +125,49 @@ function clearDraft() {
 function renderPreview() {
   const preview = $("preview");
   preview.innerHTML = "";
-  $("photoSummary").textContent = selectedFiles.length ? `${selectedFiles.length}장 선택됨` : "선택된 사진 없음";
+  $("photoSummary").textContent = selectedFiles.length ? `${selectedFiles.length}장` : "사진 없음";
   $("clearPhotos").hidden = selectedFiles.length === 0;
-  selectedFiles.forEach((file) => {
+  selectedFiles.forEach((file, index) => {
+    const item = document.createElement("div");
+    item.className = "photo-item";
+
     const img = document.createElement("img");
     img.alt = file.name;
     img.src = URL.createObjectURL(file);
-    preview.appendChild(img);
+
+    const controls = document.createElement("div");
+    controls.className = "photo-controls";
+
+    const typeSelect = document.createElement("select");
+    typeSelect.setAttribute("aria-label", `${index + 1}번 사진 불량 유형`);
+    DEFECT_TYPES.forEach((type) => {
+      const option = document.createElement("option");
+      option.value = type;
+      option.textContent = type;
+      typeSelect.appendChild(option);
+    });
+    typeSelect.value = photoDetails[index]?.type || selectedType;
+    typeSelect.addEventListener("change", () => {
+      photoDetails[index] = { ...photoDetails[index], type: typeSelect.value };
+      saveDraft();
+    });
+
+    const qtyInput = document.createElement("input");
+    qtyInput.type = "number";
+    qtyInput.min = "1";
+    qtyInput.step = "1";
+    qtyInput.inputMode = "numeric";
+    qtyInput.placeholder = "수량";
+    qtyInput.setAttribute("aria-label", `${index + 1}번 사진 불량 수량`);
+    qtyInput.value = photoDetails[index]?.qty || "";
+    qtyInput.addEventListener("input", () => {
+      photoDetails[index] = { ...photoDetails[index], qty: qtyInput.value };
+      saveDraft();
+    });
+
+    controls.append(typeSelect, qtyInput);
+    item.append(img, controls);
+    preview.appendChild(item);
   });
 }
 
@@ -189,6 +226,12 @@ function validateForm() {
   if (selectedFiles.length === 0) {
     scrollToField("photoBlock");
     throw new Error("불량 사진을 최소 1장 추가해주세요.");
+  }
+  const photoQtyTotal = photoDetails.reduce((sum, detail) => sum + Number(detail?.qty || 0), 0);
+  const hasAnyPhotoQty = photoDetails.some((detail) => detail?.qty);
+  if (hasAnyPhotoQty && photoQtyTotal !== defect) {
+    scrollToField("photoBlock");
+    throw new Error("사진별 수량 합계는 전체 불량 수량과 같아야 합니다.");
   }
   const oversizedFile = selectedFiles.find((file) => file.size > MAX_PHOTO_SIZE_BYTES);
   if (oversizedFile) {
@@ -315,18 +358,22 @@ async function uploadPhotos(reportId) {
   return data;
 }
 
-async function saveDefectItem(reportId, firstPhotoId) {
+async function saveDefectItems(reportId, photos) {
   const totalDefectQty = Number($("totalDefectQty").value || 0);
-  const defectItemQty = Number($("defectItemQty").value || totalDefectQty || 1);
-  const payload = {
-    report_id: reportId,
-    photo_id: firstPhotoId,
-    defect_type: selectedType,
-    defect_detail: selectedType === "기타" ? $("defectDetail").value.trim() : null,
-    defect_qty: defectItemQty,
-    memo: $("memo").value.trim() || null
-  };
-  const { error } = await client.from("defect_items").insert(payload);
+  const fallbackQty = Number($("defectItemQty").value || totalDefectQty || 1);
+  const rows = photos.map((photo, index) => {
+    const detail = photoDetails[index] || {};
+    const defectType = detail.type || selectedType;
+    return {
+      report_id: reportId,
+      photo_id: photo.id,
+      defect_type: defectType,
+      defect_detail: defectType === "기타" ? $("defectDetail").value.trim() || null : null,
+      defect_qty: Number(detail.qty || fallbackQty),
+      memo: $("memo").value.trim() || null
+    };
+  });
+  const { error } = await client.from("defect_items").insert(rows);
   if (error) throw error;
 }
 
@@ -346,9 +393,10 @@ async function markReportUploadFailed(reportId, error) {
 
 function clearSelectedPhotos() {
   selectedFiles = [];
+  photoDetails = [];
   $("photos").value = "";
   renderPreview();
-  setMessage("사진 선택을 초기화했습니다. 다시 추가해주세요.");
+  setMessage("사진을 초기화했습니다. 다시 추가해주세요.");
 }
 
 async function handleSubmit(event) {
@@ -372,7 +420,7 @@ async function handleSubmit(event) {
     savedReportId = report.id;
 
     const photos = await uploadPhotos(report.id);
-    await saveDefectItem(report.id, photos[0].id);
+    await saveDefectItems(report.id, photos);
 
     setMessage(`저장 완료: ${report.report_no}. 다음 상품을 바로 입력할 수 있습니다.`, "ok");
     clearDraft();
@@ -382,11 +430,12 @@ async function handleSubmit(event) {
     $("siteName").value = localStorage.getItem("siteName") || "";
     $("deviceLabel").value = localStorage.getItem("fieldDeviceLabel") || "";
     selectedFiles = [];
+    photoDetails = [];
     $("photos").value = "";
     selectedType = "제품불량";
     lastLookupProduct = null;
     lastLookupBarcode = "";
-    setLookupMessage("바코드를 스캔하거나 직접 입력 후 Enter를 눌러주세요.");
+    setLookupMessage("");
     $("defectDetailBox").hidden = true;
     renderPreview();
     renderTypeButtons();
@@ -478,17 +527,19 @@ DRAFT_FIELDS.filter((id) => !["barcode", "supplierName", "productName", "optionN
 $("totalInspectedQty").addEventListener("input", updateRate);
 $("totalDefectQty").addEventListener("input", updateRate);
 $("photos").addEventListener("change", (event) => {
-  selectedFiles = [...event.target.files];
-  const oversizedFile = selectedFiles.find((file) => file.size > MAX_PHOTO_SIZE_BYTES);
+  const newFiles = [...event.target.files];
+  const oversizedFile = newFiles.find((file) => file.size > MAX_PHOTO_SIZE_BYTES);
   if (oversizedFile) {
-    selectedFiles = [];
     event.target.value = "";
     renderPreview();
     setMessage(`${oversizedFile.name} 파일이 10MB를 초과합니다. 다른 사진을 선택해주세요.`, "err");
     return;
   }
+  selectedFiles = [...selectedFiles, ...newFiles];
+  photoDetails = selectedFiles.map((_, index) => photoDetails[index] || { type: selectedType, qty: "" });
+  event.target.value = "";
   renderPreview();
-  setMessage(`${selectedFiles.length}장 선택됨`, "ok");
+  setMessage(`${selectedFiles.length}장 추가됨`, "ok");
 });
 $("clearPhotos").addEventListener("click", clearSelectedPhotos);
 $("defectForm").addEventListener("submit", handleSubmit);
